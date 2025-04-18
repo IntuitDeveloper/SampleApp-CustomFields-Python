@@ -8,11 +8,11 @@ A simple Flask application that demonstrates integration with QuickBooks Online 
 - Create and read custom field from QuickBooks
 - Attach invoice to custom fields
 
-
 ## Prerequisites
 
 - Python 3.8 or higher
 - QuickBooks Developer account with OAuth 2.0 credentials
+
 
 ## Setup Instructions
 
@@ -33,8 +33,20 @@ A simple Flask application that demonstrates integration with QuickBooks Online 
    pip install -r requirements.txt
    ```
 
-4. **Setup Config file**
-   Replace `your_client_id` and `your_client_secret` with your actual QuickBooks Developer credentials.
+4. **Configure Environment Variables**
+   - Copy the template file to create your environment file:
+     ```bash
+     cp .env.template .env
+     ```
+   - Edit the `.env` file and add your QuickBooks credentials:
+     ```
+     QB_CLIENT_ID=your_client_id_here
+     QB_CLIENT_SECRET=your_client_secret_here
+     QB_REDIRECT_URI=your_redirect_uri_here
+     QB_ENVIRONMENT=production  # or 'sandbox' for testing
+     ```
+   - Replace the placeholder values with your actual QuickBooks Developer credentials
+   - Make sure your redirect URI matches the one configured in your QuickBooks Developer account
 
 ## Running the Application
 
@@ -46,7 +58,7 @@ A simple Flask application that demonstrates integration with QuickBooks Online 
 2. **Access the Application**
    Open your web browser and navigate to:
    ```
-   http://localhost:port
+
    ```
 
 ## Usage Guide
@@ -79,6 +91,7 @@ Custom-Fields-Python/
 ├── app.py              # Main Flask application
 ├── config.py           # Configuration settings
 ├── requirements.txt    # Python dependencies
+├── .env.template      # Template for environment variables
 ├── static/            # Static assets (CSS, images)
 │   ├── styles.css
 │   └── images/
@@ -86,11 +99,29 @@ Custom-Fields-Python/
     └── index.html
 ```
 
+## Security Notes
+
+- Never commit your `.env` file to version control
+- Keep your QuickBooks credentials secure
+- Use environment variables for all sensitive information
+- The `.env` file is automatically ignored by Git
+
 ## Troubleshooting
-   - Ensure your OAuth credentials are correct
+
+1. **Authentication Issues**
+   - Ensure your OAuth credentials are correct in the `.env` file
    - Check that the redirect URI matches your QuickBooks app settings
    - Verify admin is connecting to Quickbooks account
 
+2. **Environment Setup Issues**
+   - Make sure the `.env` file exists and contains all required variables
+   - Verify that environment variables are being loaded correctly
+   - Check that the virtual environment is activated
+
+3. **API Errors**
+   - Check the application logs for detailed error messages
+   - Verify your QuickBooks subscription includes API access
+   - Ensure you're using the correct API endpoints for your QuickBooks environment
 
 ## Contributing
 
