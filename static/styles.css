@@ -1,0 +1,114 @@
+/* Base styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Container */
+.container {
+    margin: 0 auto;
+}
+
+/* Section styles */
+.section {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+}
+
+.section-header {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+/* Form styles */
+.form-group {
+    margin-bottom: 10px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+    width: 100%;
+    padding: 5px;
+    margin-bottom: 5px;
+}
+
+/* Button styles */
+.btn {
+    display: inline-block;
+    padding: 5px 10px;
+    cursor: pointer;
+    text-decoration: none;
+    border: 1px solid #ddd;
+    background: #f5f5f5;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+    border: none;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+    border: none;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    border: none;
+}
+
+/* Message styles */
+.message {
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.message-success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+
+.message-error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+
+/* Status indicators */
+.status {
+    display: inline-block;
+    padding: 3px 6px;
+    font-size: 12px;
+}
+
+.status-connected {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+
+/* Checkbox styles */
+.checkbox-group {
+    margin-bottom: 5px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin-right: 5px;
+}
+
+/* Disabled state */
+.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+} 

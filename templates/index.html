@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QuickBooks Custom Fields API</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        /* ... existing styles ... */
+        
+        .custom-fields-list {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .custom-field-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .custom-field-item:last-child {
+            border-bottom: none;
+        }
+
+        .transaction-types {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>QuickBooks API Demo</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="message {% if category=='success' %}message-success{% else %}message-error{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Step 1: Connect to QuickBooks -->
+    <div class="section">
+        <div class="section-header">Step 1: Connect to QuickBooks</div>
+        {% if not token %}
+            <a href="{{ url_for('login') }}">
+                <img src="/static/C2QB_green_btn_tall_default.png" alt="Connect to QuickBooks" style="height:40px;">
+            </a>
+        {% else %}
+            <span class="status status-connected">Connected</span>
+        {% endif %}
+    </div>
+
+    <!-- Step 2: Create Tag -->
+    <div class="section">
+        <div class="section-header">Step 2: Create Custom Field</div>
+        <form method="post" action="/create_tag">
+            <div class="form-group">
+                <label for="tag_name">Custom Field Name</label>
+                <input type="text" id="tag_name" name="tag_name" required {% if not token %}disabled{% endif %}>
+            </div>
+            <button type="submit" class="btn" {% if not token %}disabled{% endif %}>Create Custom Field</button>
+        </form>
+        {% if session.tag_name %}
+            <div class="status status-connected">Custom Field created: {{ session.tag_name }}</div>
+        {% endif %}
+    </div>
+
+    <!-- Custom Field Selection -->
+    <div class="section">
+        <div class="section-header">Active Custom Fields</div>
+        {% if custom_fields %}
+            <div class="custom-fields-list">
+                {% for field in custom_fields %}
+                    <div class="custom-field-item">
+                        <strong>{{ field.label }}</strong> (ID: {{ field.id }})
+                        {% if field.associations %}
+                            <div class="transaction-types">
+                                Associated with:
+                                {% for assoc in field.associations %}
+                                    {% if assoc.active %}
+                                        {{ assoc.associatedEntity }}
+                                        {% if assoc.subAssociations %}
+                                            {% for sub in assoc.subAssociations %}
+                                                {% if sub.active %}
+                                                    /{{ sub.associatedEntity }}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No active custom fields found.</p>
+        {% endif %}
+    </div>
+
+    <!-- Step 3: Create Invoice -->
+    <div class="section">
+        <div class="section-header">Step 3: Create Invoice</div>
+        <form method="post" action="/create_invoice">
+            <div class="form-group">
+                <label for="customer_id">Customer</label>
+                <select id="customer_id" name="customer_id" required>
+                    <option value="">Select Customer</option>
+                    {% for customer in session.get('customers', [])[:10] %}
+                        <option value="{{ customer.Id }}">{{ customer.DisplayName }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="item_id">Item</label>
+                <select id="item_id" name="item_id" required onchange="document.getElementById('item_name').value = this.options[this.selectedIndex].text;">
+                    <option value="">Select Item</option>
+                    {% for item in session.get('items', [])[:10] %}
+                        <option value="{{ item.Id }}">{{ item.Name }}</option>
+                    {% endfor %}
+                </select>
+                <input type="hidden" id="item_name" name="item_name" value="">
+            </div>
+            <div class="form-group">
+                <label for="custom_field_id">Custom Field</label>
+                <select id="custom_field_id" name="custom_field_id" required>
+                    <option value="">Select Custom Field</option>
+                    {% for field in session.get('custom_fields', []) %}
+                        {% if field.active %}
+                            <option value="{{ field.legacyIDV2 }}">{{ field.label }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="custom_field_value">Custom Field Value</label>
+                <input type="text" id="custom_field_value" name="custom_field_value" required>
+            </div>
+            <div class="form-group">
+                <label for="amount">Invoice Amount</label>
+                <input type="number" step="0.01" id="amount" name="amount" required>
+            </div>
+            <button type="submit" class="btn">Create Invoice with Custom Field</button>
+        </form>
+    </div>
+
+    <!-- Step 4: Invoice Status -->
+    <div class="section">
+        <div class="section-header">Step 4: Invoice Status</div>
+        <div>
+            <strong>Invoice ID:</strong> 
+            {{ session.invoice_id }}
+            {% if session.invoice_deep_link %}
+            (<a href="{{ session.invoice_deep_link }}" target="_blank">View in QuickBooks</a>)
+        {% elif session.invoice_id and session.realm_id %}
+            (<a href="https://app.qbo.intuit.com/app/invoice?txnId={{ session.invoice_id }}&companyId={{ session.realm_id }}" target="_blank">View in QuickBooks</a>)
+        {% endif %}
+        
+        </div>
+    </div>
+</div>
+</body>
+</html>
