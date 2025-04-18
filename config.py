@@ -5,26 +5,25 @@ import os
 from urllib.parse import urlencode
 from intuitlib.enums import Scopes
 
-
-    # QuickBooks OAuth2 Configuration
-QB_CLIENT_ID = "ABNqSMYyurXwhGpB21K9pcbFvxtlbZ356QKmn2LYjqsXeiIO2v"
-QB_CLIENT_SECRET = "QgXeKbzMgHg4wVLqGgpHdFXqpQUGPvDyJ0Pw3O14"
-QB_REDIRECT_URI = "https://b62d-2600-1700-5ae0-6400-7d4d-f798-2b01-b70c.ngrok-free.app/callback"
-QB_ENVIRONMENT = "production"
+# QuickBooks OAuth2 Configuration
+QB_CLIENT_ID = os.getenv('QB_CLIENT_ID', '')
+QB_CLIENT_SECRET = os.getenv('QB_CLIENT_SECRET', '')
+QB_REDIRECT_URI = os.getenv('QB_REDIRECT_URI', '')
+QB_ENVIRONMENT = os.getenv('QB_ENVIRONMENT', 'production')
     
-    # API Endpoints
+# API Endpoints
 QB_BASE_URL = f"https://{'sandbox-quickbooks.api.intuit.com' if QB_ENVIRONMENT == 'sandbox' else 'quickbooks.api.intuit.com'}/v3/company"
 QB_OAUTH_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer"
 QB_GRAPHQL_URL = "https://qb.api.intuit.com/graphql"
 QB_AUTH_URL = f"https://appcenter.intuit.com/connect/oauth2"
     
-    # OAuth2 Scopes
+# OAuth2 Scopes
 QB_SCOPES = [
-        "com.intuit.quickbooks.accounting",
-        "app-foundations.custom-field-definitions"
-    ]
+    "com.intuit.quickbooks.accounting",
+    "app-foundations.custom-field-definitions"
+]
     
-    # API Headers
+# API Headers
 def get_headers(token):
     """Generate standard headers for QuickBooks API requests"""
     return {
@@ -33,7 +32,7 @@ def get_headers(token):
         "Content-Type": "application/json"
     }
     
-    # OAuth2 URL Generation
+# OAuth2 URL Generation
 def get_auth_url():
     """Generate the OAuth2 authorization URL"""
     params = {
@@ -45,15 +44,15 @@ def get_auth_url():
     }
     return f"{QB_AUTH_URL}?{urlencode(params)}"
     
-    # API Query Parameters
+# API Query Parameters
 def get_query_params(query):
     """Generate URL-encoded query parameters"""
     return urlencode({"query": query})
     
-    # Invoice Parameters
+# Invoice Parameters
 INVOICE_PARAMS = "?minorversion=70&include=enhancedAllCustomFields"
     
-    # Deep Link Base URL
+# Deep Link Base URL
 QB_DEEP_LINK_BASE = "https://app.qbo.intuit.com/app/invoice"
     
 def get_deep_link(invoice_id, realm_id):
