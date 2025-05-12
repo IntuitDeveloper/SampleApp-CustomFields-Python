@@ -33,20 +33,21 @@ A simple Flask application that demonstrates integration with QuickBooks Online 
    pip install -r requirements.txt
    ```
 
-4. **Configure Environment Variables**
-   - Copy the template file to create your environment file:
-     ```bash
-     cp .env.template .env
-     ```
-   - Edit the `.env` file and add your QuickBooks credentials:
-     ```
-     QB_CLIENT_ID=your_client_id_here
-     QB_CLIENT_SECRET=your_client_secret_here
-     QB_REDIRECT_URI=your_redirect_uri_here
-     QB_ENVIRONMENT=production  # or 'sandbox' for testing
-     ```
-   - Replace the placeholder values with your actual QuickBooks Developer credentials
-   - Make sure your redirect URI matches the one configured in your QuickBooks Developer account
+4.**Set environment variables**
+Create a `.env` file with your QuickBooks credentials:
+```
+CLIENT_ID=your_client_id
+CLIENT_SECRET=your_client_secret
+REDIRECT_URI=your_redirect_uri
+```
+## Configuration
+
+1. Update `config.py` with your QuickBooks API credentials
+2. Set up your QuickBooks Developer account and configure the OAuth2 redirect URI
+3. For local development, use ngrok to create a public URL:
+```bash
+ngrok http 5000
+```
 
 ## Running the Application
 
@@ -54,9 +55,8 @@ A simple Flask application that demonstrates integration with QuickBooks Online 
    ```bash
    python app.py
    ```
-
 2. **Access the Application**
-   Open your web browser and navigate to localhost
+   Access the application at `http://localhost:5000`
 
 ## Usage Guide
 
