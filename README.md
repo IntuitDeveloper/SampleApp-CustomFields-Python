@@ -124,6 +124,3 @@ Custom-Fields-Python/
 
 Feel free to submit issues and enhancement requests. For major changes, please open an issue first to discuss what you would like to change.
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details. 
