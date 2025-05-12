@@ -66,7 +66,7 @@ ngrok http 5000
 3. Authorize the application to access your QuickBooks data
 
 ### Creating Custom Fields
-1. Enter a name for your custom field in the "Create Tag" section
+1. Enter a name for your custom field in the "Create Custom Field" section
 2. Click "Create Custom Field" to create a new custom field in QuickBooks
 
 ### Creating Invoices
