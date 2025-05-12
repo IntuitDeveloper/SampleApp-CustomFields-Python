@@ -307,7 +307,7 @@ def create_invoice():
     headers = get_headers(token['access_token'])
     headers["Accept-Encoding"] = "gzip, deflate"
     
-    url = f"{QB_BASE_URL}/{realm_id}/invoice?minorversion=70&include=enhancedAllCustomFields"
+    url = f"{QB_BASE_URL}/{realm_id}/invoice?minorversion=75&include=enhancedAllCustomFields"
     data = {
         "Line": [
             {
