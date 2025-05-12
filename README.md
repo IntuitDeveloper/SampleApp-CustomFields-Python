@@ -18,7 +18,7 @@ A simple Flask application that demonstrates integration with QuickBooks Online 
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/Soumiya-mohan/Custom-Fields-Python.git
+   git clone 
    cd Custom-Fields-Python
    ```
 
@@ -56,10 +56,7 @@ A simple Flask application that demonstrates integration with QuickBooks Online 
    ```
 
 2. **Access the Application**
-   Open your web browser and navigate to:
-   ```
-
-   ```
+   Open your web browser and navigate to localhost
 
 ## Usage Guide
 
