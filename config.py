@@ -50,7 +50,7 @@ def get_query_params(query):
     return urlencode({"query": query})
     
 # Invoice Parameters
-INVOICE_PARAMS = "?minorversion=70&include=enhancedAllCustomFields"
+INVOICE_PARAMS = "?minorversion=75&include=enhancedAllCustomFields"
     
 # Deep Link Base URL
 QB_DEEP_LINK_BASE = "https://app.qbo.intuit.com/app/invoice"
