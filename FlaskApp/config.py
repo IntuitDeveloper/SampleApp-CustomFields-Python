@@ -19,8 +19,8 @@ QB_AUTH_URL = f"https://appcenter.intuit.com/connect/oauth2"
     
 # OAuth2 Scopes
 QB_SCOPES = [
-    "com.intuit.quickbooks.accounting",
-    "app-foundations.custom-field-definitions"
+   Scopes.ACCOUNTING,
+   Scopes.CUSTOM_FIELDS
 ]
     
 # API Headers
