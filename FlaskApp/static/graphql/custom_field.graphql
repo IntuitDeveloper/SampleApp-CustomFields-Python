@@ -1,0 +1,24 @@
+mutation AppFoundationsCreateCustomFieldDefinition($input: AppFoundations_CustomFieldDefinitionCreateInput!) {
+  appFoundationsCreateCustomFieldDefinition(input: $input) {
+    label
+    active
+    associations {
+      associatedEntity
+      active
+      validationOptions { required }
+      allowedOperations
+      associationCondition
+      subAssociations {
+        associatedEntity
+        active
+        allowedOperations
+      }
+    }
+    dataType
+    dropDownOptions {
+      value
+      active
+      order
+    }
+  }
+} 

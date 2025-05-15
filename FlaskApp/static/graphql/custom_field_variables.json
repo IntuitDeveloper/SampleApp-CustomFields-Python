@@ -1,0 +1,37 @@
+{
+    "input": {
+        "label": "${label}",
+        "associations": [
+            {
+                "validationOptions": {"required": false},
+                "associatedEntity": "/transactions/Transaction",
+                "active": true,
+                "allowedOperations": [],
+                "associationCondition": "INCLUDED",
+                "subAssociations": [
+                    {
+                        "associatedEntity": "SALE_INVOICE",
+                        "active": true,
+                        "allowedOperations": []
+                    }
+                ]
+            },
+            {
+                "associatedEntity": "/network/Contact",
+                "active": true,
+                "validationOptions": {"required": false},
+                "allowedOperations": [],
+                "associationCondition": "INCLUDED",
+                "subAssociations": [
+                    {
+                        "associatedEntity": "CUSTOMER",
+                        "active": true,
+                        "allowedOperations": []
+                    }
+                ]
+            }
+        ],
+        "dataType": "STRING",
+        "active": true
+    }
+} 

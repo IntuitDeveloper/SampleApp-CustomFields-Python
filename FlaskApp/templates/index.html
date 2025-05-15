@@ -112,18 +112,18 @@
         {% endif %}
     </div>
 
-    <!-- Step 2: Create Tag -->
+    <!-- Step 2: Create Custom Field -->
     <div class="section">
         <div class="section-header">Step 2: Create Custom Field</div>
-        <form method="post" action="{{ url_for('create_tag') }}">
+        <form method="post" action="{{ url_for('create_custom_field') }}">
             <div class="form-group">
-                <label for="tag_name">Custom Field Name</label>
-                <input type="text" id="tag_name" name="tag_name" required {% if not token %}disabled{% endif %}>
+                <label for="custom_field_name">Custom Field Name</label>
+                <input type="text" id="custom_field_name" name="custom_field_name" required {% if not token %}disabled{% endif %}>
             </div>
             <button type="submit" class="btn" {% if not token %}disabled{% endif %}>Create Custom Field</button>
         </form>
-        {% if session.tag_name %}
-            <div class="status status-connected">Custom Field created: {{ session.tag_name }}</div>
+        {% if session.custom_field_name %}
+            <div class="status status-connected">Custom Field created: {{ session.custom_field_name }}</div>
         {% endif %}
         {% if session.error_code %}
             <div class="status status-error">Error Code: {{ session.error_code }}</div>

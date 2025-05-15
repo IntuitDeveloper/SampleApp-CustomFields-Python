@@ -84,32 +84,17 @@ def fetch_custom_fields(token, realm_id):
     custom_fields = []
     if token and realm_id:
         headers = get_headers(token['access_token'])
-        query = '''
-        query {
-          appFoundationsCustomFieldDefinitions {
-            edges {
-              node {
-                id
-                legacyIDV2
-                label
-                active
-                associations {
-                  associatedEntity
-                  active
-                  validationOptions { required }
-                  allowedOperations
-                  associationCondition
-                  subAssociations {
-                    associatedEntity
-                    active
-                    allowedOperations
-                  }
-                }
-              }
-            }
-          }
-        }
-        '''
+        
+        # Read GraphQL query from file
+        try:
+            with open(os.path.join(app.static_folder, 'graphql', 'query_custom_field.graphql'), 'r') as file:
+                query = file.read()
+        except Exception as e:
+            error_msg = f"Failed to read GraphQL query file: {str(e)}"
+            print(error_msg)
+            flash(error_msg, "danger")
+            return custom_fields
+        
         payload = {"query": query}
         try:
             print("Sending GraphQL request for custom fields...")
@@ -253,91 +238,50 @@ def callback():
         flash(error_msg, "danger")
         return render_template('index.html', token=None, custom_fields=[])
 
-@app.route("/create_tag", methods=["POST"])
-def create_tag():
+@app.route("/create_custom_field", methods=["POST"])
+def create_custom_field():
     session.pop('_flashes', None)
     session.pop('error_code', None)  # Clear any previous error code
     
-    tag_name = request.form.get("tag_name")
+    custom_field_name = request.form.get("custom_field_name")
     token = session.get("oauth_token")
     realm_id = session.get("realm_id")
     
-    # Create custom field directly
-    mutation = '''
-    mutation AppFoundationsCreateCustomFieldDefinition($input: AppFoundations_CustomFieldDefinitionCreateInput!) {
-      appFoundationsCreateCustomFieldDefinition(input: $input) {
-        label
-        active
-        associations {
-          associatedEntity
-          active
-          validationOptions { required }
-          allowedOperations
-          associationCondition
-          subAssociations {
-            associatedEntity
-            active
-            allowedOperations
-          }
-        }
-        dataType
-        dropDownOptions {
-          value
-          active
-          order
-        }
-      }
-    }
-    '''
-    variables = {
-        "input": {
-            "label": tag_name,
-            "associations": [
-                {
-                    "validationOptions": {"required": False},
-                    "associatedEntity": "/transactions/Transaction",
-                    "active": True,
-                    "allowedOperations": [],
-                    "associationCondition": "INCLUDED",
-                    "subAssociations": [
-                        {
-                            "associatedEntity": "SALE_INVOICE",
-                            "active": True,
-                            "allowedOperations": []
-                        }
-                    ]
-                },
-                {
-                    "associatedEntity": "/network/Contact",
-                    "active": True,
-                    "validationOptions": {"required": False},
-                    "allowedOperations": [],
-                    "associationCondition": "INCLUDED",
-                    "subAssociations": [
-                        {
-                            "associatedEntity": "CUSTOMER",
-                            "active": True,
-                            "allowedOperations": []
-                        }
-                    ]
-                }
-            ],
-            "dataType": "STRING",
-            "active": True
-        }
-    }
+    # Read GraphQL mutation from file
+    try:
+        with open(os.path.join(app.static_folder, 'graphql', 'custom_field.graphql'), 'r') as file:
+            mutation = file.read()
+    except Exception as e:
+        error_msg = f"Failed to read GraphQL mutation file: {str(e)}"
+        print(error_msg)
+        flash(error_msg, "danger")
+        return redirect(url_for('index'))
+    
+    # Read variables template from file
+    try:
+        with open(os.path.join(app.static_folder, 'graphql', 'custom_field_variables.json'), 'r') as file:
+            variables_template = json.load(file)
+            # Replace the placeholder with actual value
+            variables_template['input']['label'] = custom_field_name
+    except Exception as e:
+        error_msg = f"Failed to read variables template file: {str(e)}"
+        print(error_msg)
+        flash(error_msg, "danger")
+        return redirect(url_for('index'))
+    
     payload = {
         "query": mutation,
-        "variables": variables
+        "variables": variables_template
     }
     try:
-        print(f"Creating new custom field with name: {tag_name}")
+        print(f"Creating new custom field with name: {custom_field_name}")
         resp = requests.post(QB_GRAPHQL_URL, json=payload, headers=get_headers(token['access_token']))
         resp_json = resp.json()
         
         if resp_json.get('errors'):
             for error in resp_json['errors']:
                 error_code = error.get('extensions', {}).get('errorCode', {}).get('errorCode')
+                
                 # Store the error code in session
                 session['error_code'] = error_code
                 
@@ -350,15 +294,15 @@ def create_tag():
                     flash("Unknown error", "danger")
                 return redirect(url_for('index'))
         
-        # After successful tag creation, refresh custom fields
+        # After successful custom field creation, refresh custom fields
         custom_fields = fetch_custom_fields(token, realm_id)
         session['custom_fields'] = custom_fields
-        session['tag_name'] = tag_name  # Store the created tag name
+        session['custom_field_name'] = custom_field_name  # Store the created custom field name
         
-        flash("Tag created successfully.", "success")
+        flash("Custom field created successfully.", "success")
         return redirect(url_for('index'))
     except Exception as e:
-        error_msg = f"Failed to create tag: {str(e)}"
+        error_msg = f"Failed to create custom field: {str(e)}"
         print(error_msg)
         flash(error_msg, "danger")
         return redirect(url_for('index'))
