@@ -13,7 +13,14 @@ app = Flask(__name__,
     static_folder='static',
     static_url_path='/static',
     template_folder='templates')
-app.secret_key = 'your-secret-key-123'  # Replace with your own secret key
+
+# Configure session
+app.secret_key = os.urandom(24)
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to False for development
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # Clear session on startup
 @app.before_request
@@ -105,10 +112,16 @@ def fetch_custom_fields(token, realm_id):
         '''
         payload = {"query": query}
         try:
+            print("Sending GraphQL request for custom fields...")
             resp = requests.post(QB_GRAPHQL_URL, json=payload, headers=headers)
+            print(f"Custom fields response status: {resp.status_code}")
+            print(f"Custom fields response: {resp.text}")
+            
             resp_json = resp.json()
             if resp.status_code == 200 and resp_json.get('data'):
                 edges = resp_json['data']['appFoundationsCustomFieldDefinitions']['edges']
+                print(f"Found {len(edges)} custom field edges")
+                
                 for edge in edges:
                     node = edge['node']
                     if node.get('active', False):
@@ -118,89 +131,138 @@ def fetch_custom_fields(token, realm_id):
                                 for sub_assoc in assoc.get('subAssociations', []):
                                     transaction_types.append(sub_assoc.get('associatedEntity', ''))
                         
-                        custom_fields.append({
+                        custom_field = {
                             'id': node['id'],
                             'legacyIDV2': node['legacyIDV2'],
                             'label': node['label'],
                             'active': node['active'],
                             'transaction_types': transaction_types,
                             'selected': True
-                        })
+                        }
+                        custom_fields.append(custom_field)
+                        print(f"Added custom field: {custom_field}")
+            else:
+                print(f"Error in custom fields response: {resp_json.get('errors', [])}")
         except Exception as e:
+            print(f"Exception fetching custom fields: {str(e)}")
             flash(f"Error fetching custom fields: {str(e)}", "danger")
     return custom_fields
 
 @app.route("/login")
 def login():
-
     scopes = [
         "com.intuit.quickbooks.accounting",
         "app-foundations.custom-field-definitions"
     ]
     params = {
+        "response_type": "code",
         "client_id": QB_CLIENT_ID,
         "redirect_uri": QB_REDIRECT_URI,
-        "response_type": "code",
         "scope": " ".join(scopes),
-        "state": "random_state_123"
+        "state": "random_state_123",  # Send state but don't validate
+        "locale": "en-us"
     }
-    auth_url = f"{QB_AUTH_URL}?{urllib.parse.urlencode(params)}"
+    encoded_params = urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
+    auth_url = f"{QB_AUTH_URL}?{encoded_params}"
     return redirect(auth_url)
 
 @app.route("/callback")
 def callback():
     session.pop('_flashes', None)
     
+    # Log all callback parameters for debugging
+    print(f"Callback parameters: {dict(request.args)}")
+    
+    # Check for OAuth errors
+    error = request.args.get('error')
+    error_description = request.args.get('error_description')
+    if error:
+        error_msg = f"OAuth Error: {error} - {error_description}"
+        print(f"OAuth Error in callback: {error_msg}")
+        flash(error_msg, "danger")
+        return render_template('index.html', token=None, custom_fields=[])
+    
     auth_code = request.args.get('code')
     realm_id = request.args.get('realmId')
-    if not auth_code or not realm_id:
-        flash("Missing code or realmId in callback.", "danger")
-        return redirect(url_for('index'))
     
-    headers = {"Accept": "application/json"}
+    if not auth_code or not realm_id:
+        error_msg = "Missing code or realmId in callback"
+        print(f"Missing parameters: {error_msg}")
+        flash(error_msg, "danger")
+        return render_template('index.html', token=None, custom_fields=[])
+    
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
     auth = (QB_CLIENT_ID, QB_CLIENT_SECRET)
     data = {
         "grant_type": "authorization_code",
         "code": auth_code,
         "redirect_uri": QB_REDIRECT_URI
     }
-    resp = requests.post(QB_OAUTH_URL, headers=headers, data=data, auth=auth)
-    if resp.status_code == 200:
-        token_json = resp.json()
-        session['oauth_token'] = {
-            'access_token': token_json.get('access_token'),
-            'refresh_token': token_json.get('refresh_token'),
-            'id_token': token_json.get('id_token'),
-            'expires_in': token_json.get('expires_in'),
-        }
-        session['realm_id'] = realm_id
+    
+    try:
+        print(f"Token request data: {data}")
+        resp = requests.post(QB_OAUTH_URL, headers=headers, data=data, auth=auth)
+        print(f"Token response status: {resp.status_code}")
+        print(f"Token response: {resp.text}")
         
-        # Initialize all session data after successful authentication
-        customers = fetch_customers(session['oauth_token'], realm_id)
-        items = fetch_items(session['oauth_token'], realm_id)
-        custom_fields = fetch_custom_fields(session['oauth_token'], realm_id)
-        
-        session['customers'] = customers
-        session['items'] = items
-        session['custom_fields'] = custom_fields
-        
-        flash("Successfully authenticated with QuickBooks!", "success")
-    else:
-        flash(f"Failed to get tokens: {resp.text}", "danger")
-    return redirect(url_for('index'))
+        if resp.status_code == 200:
+            token_json = resp.json()
+            # Store token data in session
+            session['oauth_token'] = {
+                'access_token': token_json.get('access_token'),
+                'refresh_token': token_json.get('refresh_token'),
+                'id_token': token_json.get('id_token'),
+                'expires_in': token_json.get('expires_in'),
+            }
+            session['realm_id'] = realm_id
+            
+            # Initialize all session data after successful authentication
+            print("Fetching customers...")
+            customers = fetch_customers(session['oauth_token'], realm_id)
+            session['customers'] = customers
+            print(f"Fetched {len(customers)} customers")
+            
+            print("Fetching items...")
+            items = fetch_items(session['oauth_token'], realm_id)
+            session['items'] = items
+            print(f"Fetched {len(items)} items")
+            
+            print("Fetching custom fields...")
+            custom_fields = fetch_custom_fields(session['oauth_token'], realm_id)
+            session['custom_fields'] = custom_fields
+            print(f"Fetched {len(custom_fields)} custom fields")
+            print("Custom fields:", custom_fields)
+            
+            flash("Successfully authenticated with QuickBooks!", "success")
+            return render_template('index.html', 
+                                token=session['oauth_token'],
+                                custom_fields=custom_fields,
+                                customers=customers,
+                                items=items)
+        else:
+            error_msg = f"Failed to get tokens. Status: {resp.status_code}, Response: {resp.text}"
+            print(f"Token request failed: {error_msg}")
+            flash(error_msg, "danger")
+            return render_template('index.html', token=None, custom_fields=[])
+    except Exception as e:
+        error_msg = f"Exception during OAuth token exchange: {str(e)}"
+        print(f"Exception in callback: {error_msg}")
+        flash(error_msg, "danger")
+        return render_template('index.html', token=None, custom_fields=[])
 
 @app.route("/create_tag", methods=["POST"])
 def create_tag():
     session.pop('_flashes', None)
+    session.pop('error_code', None)  # Clear any previous error code
     
     tag_name = request.form.get("tag_name")
     token = session.get("oauth_token")
     realm_id = session.get("realm_id")
-    if not token or not realm_id:
-        flash("Please connect to QuickBooks first.", "danger")
-        return redirect(url_for('index'))
     
-    headers = get_headers(token['access_token'])
+    # Create custom field directly
     mutation = '''
     mutation AppFoundationsCreateCustomFieldDefinition($input: AppFoundations_CustomFieldDefinitionCreateInput!) {
       appFoundationsCreateCustomFieldDefinition(input: $input) {
@@ -269,29 +331,44 @@ def create_tag():
         "variables": variables
     }
     try:
-        resp = requests.post(QB_GRAPHQL_URL, json=payload, headers=headers)
+        print(f"Creating new custom field with name: {tag_name}")
+        resp = requests.post(QB_GRAPHQL_URL, json=payload, headers=get_headers(token['access_token']))
         resp_json = resp.json()
-    except Exception as e:
-        flash(f"Failed to create tag: {e}", "danger")
-        return redirect(url_for('index'))
-    
-    if resp_json.get('errors'):
-        for error in resp_json['errors']:
-            if error.get('extensions', {}).get('errorCode', {}).get('errorCode') == "CUSTOM_FIELD_ASSOCIATED_ENTITY_LIMIT_EXCEEDED":
-                flash("You've exceeded the maximum number of associated entities for custom fields.", "danger")
+        
+        if resp_json.get('errors'):
+            for error in resp_json['errors']:
+                error_code = error.get('extensions', {}).get('errorCode', {}).get('errorCode')
+                # Store the error code in session
+                session['error_code'] = error_code
+                
+                # Handle specific error codes
+                if error_code == 'CUSTOM_FIELD_ASSOCIATED_ENTITY_LIMIT_EXCEEDED':
+                    flash("You've exceeded the maximum number of associated entities for custom fields.", "danger")
+                elif error_code == 'LABEL_ALREADY_EXISTS':
+                    flash("Custom field already exists", "danger")
+                else:
+                    flash("Unknown error", "danger")
                 return redirect(url_for('index'))
-        flash(f"Failed to create tag: {resp_json['errors']}", "danger")
+        
+        # After successful tag creation, refresh custom fields
+        custom_fields = fetch_custom_fields(token, realm_id)
+        session['custom_fields'] = custom_fields
+        session['tag_name'] = tag_name  # Store the created tag name
+        
+        flash("Tag created successfully.", "success")
         return redirect(url_for('index'))
-    
-    # After successful tag creation, only refresh custom fields
-    custom_fields = fetch_custom_fields(token, realm_id)
-    session['custom_fields'] = custom_fields
-    
-    flash("Tag created successfully.", "success")
-    return redirect(url_for('index'))
+    except Exception as e:
+        error_msg = f"Failed to create tag: {str(e)}"
+        print(error_msg)
+        flash(error_msg, "danger")
+        return redirect(url_for('index'))
 
 @app.route("/create_invoice", methods=["POST"])
 def create_invoice():
+
+    session.pop('invoice_id', None)
+    session.pop('invoice_deep_link', None)
+    
     amount = request.form.get("amount")
     token = session.get("oauth_token")
     realm_id = session.get("realm_id")
@@ -300,6 +377,7 @@ def create_invoice():
     customer_id = request.form.get("customer_id")
     item_id = request.form.get("item_id")
     item_name = request.form.get("item_name")
+    
     if not token or not realm_id or not custom_field_id or not customer_id or not item_id:
         flash("Connect to QuickBooks and select all required fields.", "danger")
         return redirect(url_for('index'))
@@ -329,7 +407,12 @@ def create_invoice():
     }
     
     try:
+        print(f"Sending invoice creation request to: {url}")
+        print(f"Request data: {json.dumps(data, indent=2)}")
+        
         resp = requests.post(url, json=data, headers=headers)
+        print(f"Invoice creation response status: {resp.status_code}")
+        print(f"Invoice creation response: {resp.text}")
         
         if resp.status_code == 200:
             resp_json = resp.json()
@@ -337,22 +420,28 @@ def create_invoice():
                 inv_id = resp_json['Invoice']['Id']
                 session['invoice_id'] = inv_id
                 
-                if inv_id:
-                    deep_link = f"https://app.qbo.intuit.com/app/invoice?txnId={inv_id}&companyId={realm_id}"
-                    session['invoice_deep_link'] = deep_link
-                    flash(f"Success! Invoice created with ID: {inv_id}", "success")
-                else:
-                    flash("Invoice created but ID not found in response", "warning")
+                # Create deep link
+                deep_link = f"https://app.qbo.intuit.com/app/invoice?txnId={inv_id}&companyId={realm_id}"
+                session['invoice_deep_link'] = deep_link
+                
+                flash(f"Success! Invoice created with ID: {inv_id}", "success")
             else:
-                flash("Invoice created but response format unexpected", "warning")
+                error_msg = "Invoice created but ID not found in response"
+                print(error_msg)
+                print(f"Response JSON: {json.dumps(resp_json, indent=2)}")
+                flash(error_msg, "warning")
         else:
-            session['invoice_id'] = None
-            session['invoice_deep_link'] = None
-            flash(f"Failed to create invoice: {resp.text}", "danger")
+            error_msg = f"Failed to create invoice. Status: {resp.status_code}, Response: {resp.text}"
+            print(error_msg)
+            flash(error_msg, "danger")
     except requests.exceptions.ContentDecodingError as e:
-        flash("Error creating invoice: Content decoding error", "danger")
+        error_msg = f"Error creating invoice: Content decoding error - {str(e)}"
+        print(error_msg)
+        flash(error_msg, "danger")
     except Exception as e:
-        flash(f"Error creating invoice: {str(e)}", "danger")
+        error_msg = f"Error creating invoice: {str(e)}"
+        print(error_msg)
+        flash(error_msg, "danger")
     
     return redirect(url_for('index'))
 
@@ -479,5 +568,4 @@ class QuickBooksAPI:
         pass
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
-
+    app.run(host="0.0.0.0", port=5002, debug=True)

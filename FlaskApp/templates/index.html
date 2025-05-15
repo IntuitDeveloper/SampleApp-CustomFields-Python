@@ -29,6 +29,61 @@
             color: #6c757d;
             margin-top: 5px;
         }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            position: relative;
+            z-index: 1000;
+        }
+        .alert-danger {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+        }
+        .status-error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .invoice-status {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        
+        .btn-link {
+            display: inline-block;
+            padding: 5px 10px;
+            margin-left: 10px;
+            color: #007bff;
+            text-decoration: none;
+            border: 1px solid #007bff;
+            border-radius: 4px;
+        }
+        
+        .btn-link:hover {
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -36,13 +91,13 @@
     <h1>QuickBooks API Demo</h1>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="message {% if category=='success' %}message-success{% else %}message-error{% endif %}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
     {% endwith %}
 
     <!-- Step 1: Connect to QuickBooks -->
@@ -60,7 +115,7 @@
     <!-- Step 2: Create Tag -->
     <div class="section">
         <div class="section-header">Step 2: Create Custom Field</div>
-        <form method="post" action="/create_tag">
+        <form method="post" action="{{ url_for('create_tag') }}">
             <div class="form-group">
                 <label for="tag_name">Custom Field Name</label>
                 <input type="text" id="tag_name" name="tag_name" required {% if not token %}disabled{% endif %}>
@@ -70,45 +125,14 @@
         {% if session.tag_name %}
             <div class="status status-connected">Custom Field created: {{ session.tag_name }}</div>
         {% endif %}
-    </div>
-
-    <!-- Custom Field Selection -->
-    <div class="section">
-        <div class="section-header">Active Custom Fields</div>
-        {% if custom_fields %}
-            <div class="custom-fields-list">
-                {% for field in custom_fields %}
-                    <div class="custom-field-item">
-                        <strong>{{ field.label }}</strong> (ID: {{ field.id }})
-                        {% if field.associations %}
-                            <div class="transaction-types">
-                                Associated with:
-                                {% for assoc in field.associations %}
-                                    {% if assoc.active %}
-                                        {{ assoc.associatedEntity }}
-                                        {% if assoc.subAssociations %}
-                                            {% for sub in assoc.subAssociations %}
-                                                {% if sub.active %}
-                                                    /{{ sub.associatedEntity }}
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p>No active custom fields found.</p>
+        {% if session.error_code %}
+            <div class="status status-error">Error Code: {{ session.error_code }}</div>
         {% endif %}
     </div>
-
-    <!-- Step 3: Create Invoice -->
+<!-- Step 3: Create Invoice -->
     <div class="section">
         <div class="section-header">Step 3: Create Invoice</div>
-        <form method="post" action="/create_invoice">
+        <form method="post" action="{{ url_for('create_invoice') }}">
             <div class="form-group">
                 <label for="customer_id">Customer</label>
                 <select id="customer_id" name="customer_id" required>
@@ -154,16 +178,18 @@
     <!-- Step 4: Invoice Status -->
     <div class="section">
         <div class="section-header">Step 4: Invoice Status</div>
-        <div>
-            <strong>Invoice ID:</strong> 
-            {{ session.invoice_id }}
-            {% if session.invoice_deep_link %}
-            (<a href="{{ session.invoice_deep_link }}" target="_blank">View in QuickBooks</a>)
-        {% elif session.invoice_id and session.realm_id %}
-            (<a href="https://app.qbo.intuit.com/app/invoice?txnId={{ session.invoice_id }}&companyId={{ session.realm_id }}" target="_blank">View in QuickBooks</a>)
+        {% if session.invoice_id %}
+            <div class="invoice-status">
+                <strong>Invoice ID:</strong> {{ session.invoice_id }}
+                {% if session.invoice_deep_link %}
+                    <a href="{{ session.invoice_deep_link }}" target="_blank" class="btn btn-link">View in QuickBooks</a>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="invoice-status">
+                <p>No invoice created yet.</p>
+            </div>
         {% endif %}
-        
-        </div>
     </div>
 </div>
 </body>
